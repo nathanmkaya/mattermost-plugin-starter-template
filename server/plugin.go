@@ -5,13 +5,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mattermost/mattermost-plugin-starter-template/server/command"
-	"github.com/mattermost/mattermost-plugin-starter-template/server/store/kvstore"
+	"github.com/gorilla/mux"
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
 	"github.com/mattermost/mattermost/server/public/pluginapi"
 	"github.com/mattermost/mattermost/server/public/pluginapi/cluster"
 	"github.com/pkg/errors"
+
+	"github.com/mattermost/mattermost-plugin-starter-template/server/command"
+	"github.com/mattermost/mattermost-plugin-starter-template/server/store/kvstore"
 )
 
 // Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
@@ -26,6 +28,9 @@ type Plugin struct {
 
 	// commandClient is the client used to register and execute slash commands.
 	commandClient command.Command
+
+	// router is the HTTP router for handling API requests.
+	router *mux.Router
 
 	backgroundJob *cluster.Job
 
@@ -44,6 +49,8 @@ func (p *Plugin) OnActivate() error {
 	p.kvstore = kvstore.NewKVStore(p.client)
 
 	p.commandClient = command.NewCommandHandler(p.client)
+
+	p.router = p.initRouter()
 
 	job, err := cluster.Schedule(
 		p.API,
